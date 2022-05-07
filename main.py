@@ -31,17 +31,17 @@ RESOURCES = [183000, 90512, 80150]
 
 def solve_army(UNITS, DATA, RESOURCES):
   # Create the linear solver using the CBC backend
-  solver = pywraplp.Solver('Maximize army power', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+  solver = pywraplp.Solver('Minimize resource consumption', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
 
   # 1. Create the variables we want to optimize
   units = [solver.IntVar(0, solver.infinity(), unit) for unit in UNITS]
 
   # 2. Add constraints for each resource
   for r, _ in enumerate(RESOURCES):
-    solver.Add(sum(DATA[u][r] * units[u] for u, _ in enumerate(units)) <= RESOURCES[r])
+    solver.Add(sum((10 * DATA[u][-2] + DATA[u][-1]) * units[u] for u, _ in enumerate(units)) >= 1000001)
 
-  # 3. Maximize the new objective function
-  solver.Maximize(sum((10*DATA[u][-2] + DATA[u][-1]) * units[u] for u, _ in enumerate(units)))
+  # 3. Minimize the objective function
+  solver.Minimize(sum((DATA[u][0] + DATA[u][1] + DATA[u][2]) * units[u] for u, _ in enumerate(units)))
 
   # Solve problem
   status = solver.Solve()
@@ -51,12 +51,24 @@ def solve_army(UNITS, DATA, RESOURCES):
     print('================= Solution =================')
     print(f'Solved in {solver.wall_time():.2f} milliseconds in {solver.iterations()} iterations')
     print()
-    print(f'Optimal value = {solver.Objective().Value()} 💪power')
+
+    power = sum((10 * DATA[u][-2] + DATA[u][-1]) * units[u].solution_value() for u, _ in enumerate(units))
+    print(f'Optimal value = {solver.Objective().Value()} 🌾🪵🪙resources')
+    print(f'Power = 💪{power}')
     print('Army:')
     for u, _ in enumerate(units):
       print(f' - {units[u].name()} = {units[u].solution_value()}')
+    print()
+
+    food = sum((DATA[u][0]) * units[u].solution_value() for u, _ in enumerate(units))
+    wood = sum((DATA[u][1]) * units[u].solution_value() for u, _ in enumerate(units))
+    gold = sum((DATA[u][2]) * units[u].solution_value() for u, _ in enumerate(units))
+    print('Resources:')
+    print(f' - 🌾Food = {food}')
+    print(f' - 🪵Wood = {wood}')
+    print(f' - 🪙Gold = {gold}')
   else:
-    print('The solver could not find an optimal solution.')
+      print('The solver could not find an optimal solution.')
 
 
 solve_army(UNITS, DATA, RESOURCES)
