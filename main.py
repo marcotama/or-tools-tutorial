@@ -46,8 +46,10 @@ COST_DATA = [
 
 RESOURCES = [183000, 90512, 80150]
 
+RESOURCE_VALUES = [1, 2, 8]
 
-def solve_army(unit_names, cost_data, power_data, resource_limits):
+
+def solve_army(unit_names, cost_data, power_data, resource_limits, resource_values):
     # Create the linear solver using the CBC backend
     solver = pywraplp.Solver('Minimize resource consumption', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
 
@@ -62,7 +64,11 @@ def solve_army(unit_names, cost_data, power_data, resource_limits):
         solver.Add(sum(cost_data[u][r] * units[u] for u, _ in enumerate(units)) <= resource_limits[r])
 
     # 3. Minimize the objective function
-    solver.Minimize(sum((cost_data[u][FOOD] + cost_data[u][WOOD] + cost_data[u][GOLD]) * units[u] for u, _ in enumerate(units)))
+    target_fn = 0
+    for u, _ in enumerate(units):
+        for r, _ in enumerate(resource_values):
+            target_fn += cost_data[u][r] * resource_values[r] * units[u]
+    solver.Minimize(target_fn)
 
     # Solve problem
     status = solver.Solve()
@@ -74,7 +80,7 @@ def solve_army(unit_names, cost_data, power_data, resource_limits):
         print()
 
         power = sum((10 * power_data[u][HEALTH] + power_data[u][ATTACK]) * units[u].solution_value() for u, _ in enumerate(units))
-        print(f'Optimal value = {solver.Objective().Value()} 🌾🪵🪙resources')
+        print(f'Optimal value = {solver.Objective().Value()} 🌾🪵🪙 food-equivalent resources')
         print(f'Power = 💪{power}')
         print('Army:')
         for u, _ in enumerate(units):
@@ -92,4 +98,4 @@ def solve_army(unit_names, cost_data, power_data, resource_limits):
         print('The solver could not find an optimal solution.')
 
 
-solve_army(UNITS, COST_DATA, POWER_DATA, RESOURCES)
+solve_army(UNITS, COST_DATA, POWER_DATA, RESOURCES, RESOURCE_VALUES)
