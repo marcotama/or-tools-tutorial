@@ -37,8 +37,7 @@ def solve_army(UNITS, DATA, RESOURCES):
     units = [solver.IntVar(0, solver.infinity(), unit) for unit in UNITS]
 
     # 2. Add constraints for each resource
-    for r, _ in enumerate(RESOURCES):
-        solver.Add(sum((10 * DATA[u][-2] + DATA[u][-1]) * units[u] for u, _ in enumerate(units)) >= 1000001)
+    solver.Add(sum((10 * DATA[u][-2] + DATA[u][-1]) * units[u] for u, _ in enumerate(units)) >= 1000001)
 
     # Old constraints for limited resources
     for r, _ in enumerate(RESOURCES):
