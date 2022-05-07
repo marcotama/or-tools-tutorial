@@ -13,38 +13,56 @@ UNITS = [
     '🪨Mangonels',
 ]
 
-DATA = [
-    [60, 20, 0, 6, 70],
-    [100, 0, 20, 12, 155],
-    [30, 50, 0, 5, 70],
-    [80, 0, 40, 12, 80],
-    [120, 0, 120, 35, 150],
-    [100, 20, 0, 9, 125],
-    [140, 0, 100, 24, 230],
-    [0, 300, 0, 200, 700],
-    [0, 250, 250, 30, 200],
-    [0, 400, 200, 12*3, 240]
+HEALTH = 0
+ATTACK = 1
+POWER_DATA = [
+    [6, 70],
+    [12, 155],
+    [5, 70],
+    [12, 80],
+    [35, 150],
+    [9, 125],
+    [24, 230],
+    [200, 700],
+    [30, 200],
+    [12*3, 240]
+]
+
+FOOD = 0
+WOOD = 1
+GOLD = 2
+COST_DATA = [
+    [60, 20, 0],
+    [100, 0, 20],
+    [30, 50, 0],
+    [80, 0, 40],
+    [120, 0, 120],
+    [100, 20, 0],
+    [140, 0, 100],
+    [0, 300, 0],
+    [0, 250, 250],
+    [0, 400, 200]
 ]
 
 RESOURCES = [183000, 90512, 80150]
 
 
-def solve_army(UNITS, DATA, RESOURCES):
+def solve_army(unit_names, cost_data, power_data, resource_limits):
     # Create the linear solver using the CBC backend
     solver = pywraplp.Solver('Minimize resource consumption', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
 
     # 1. Create the variables we want to optimize
-    units = [solver.IntVar(0, solver.infinity(), unit) for unit in UNITS]
+    units = [solver.IntVar(0, solver.infinity(), unit) for unit in unit_names]
 
     # 2. Add constraints for each resource
-    solver.Add(sum((10 * DATA[u][-2] + DATA[u][-1]) * units[u] for u, _ in enumerate(units)) >= 1000001)
+    solver.Add(sum((10 * power_data[u][HEALTH] + power_data[u][ATTACK]) * units[u] for u, _ in enumerate(units)) >= 1000001)
 
     # Old constraints for limited resources
-    for r, _ in enumerate(RESOURCES):
-        solver.Add(sum(DATA[u][r] * units[u] for u, _ in enumerate(units)) <= RESOURCES[r])
+    for r, _ in enumerate(resource_limits):
+        solver.Add(sum(cost_data[u][r] * units[u] for u, _ in enumerate(units)) <= resource_limits[r])
 
     # 3. Minimize the objective function
-    solver.Minimize(sum((DATA[u][0] + DATA[u][1] + DATA[u][2]) * units[u] for u, _ in enumerate(units)))
+    solver.Minimize(sum((cost_data[u][FOOD] + cost_data[u][WOOD] + cost_data[u][GOLD]) * units[u] for u, _ in enumerate(units)))
 
     # Solve problem
     status = solver.Solve()
@@ -55,7 +73,7 @@ def solve_army(UNITS, DATA, RESOURCES):
         print(f'Solved in {solver.wall_time():.2f} milliseconds in {solver.iterations()} iterations')
         print()
 
-        power = sum((10 * DATA[u][-2] + DATA[u][-1]) * units[u].solution_value() for u, _ in enumerate(units))
+        power = sum((10 * power_data[u][HEALTH] + power_data[u][ATTACK]) * units[u].solution_value() for u, _ in enumerate(units))
         print(f'Optimal value = {solver.Objective().Value()} 🌾🪵🪙resources')
         print(f'Power = 💪{power}')
         print('Army:')
@@ -63,9 +81,9 @@ def solve_army(UNITS, DATA, RESOURCES):
             print(f' - {units[u].name()} = {units[u].solution_value()}')
         print()
 
-        food = sum((DATA[u][0]) * units[u].solution_value() for u, _ in enumerate(units))
-        wood = sum((DATA[u][1]) * units[u].solution_value() for u, _ in enumerate(units))
-        gold = sum((DATA[u][2]) * units[u].solution_value() for u, _ in enumerate(units))
+        food = sum((cost_data[u][FOOD]) * units[u].solution_value() for u, _ in enumerate(units))
+        wood = sum((cost_data[u][WOOD]) * units[u].solution_value() for u, _ in enumerate(units))
+        gold = sum((cost_data[u][GOLD]) * units[u].solution_value() for u, _ in enumerate(units))
         print('Resources:')
         print(f' - 🌾Food = {food}')
         print(f' - 🪵Wood = {wood}')
@@ -74,4 +92,4 @@ def solve_army(UNITS, DATA, RESOURCES):
         print('The solver could not find an optimal solution.')
 
 
-solve_army(UNITS, DATA, RESOURCES)
+solve_army(UNITS, COST_DATA, POWER_DATA, RESOURCES)
